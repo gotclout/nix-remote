@@ -1,0 +1,171 @@
+Jenkins (CentOS 7)
+
+Installation
+
+	sudo wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat/jenkins.repo
+	sudo rpm --import http://pkg.jenkins-ci.org/redhat/jenkins-ci.org.key
+	sudo yum install jenkins
+
+Installation Stable
+	sudo wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo
+	sudo rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key
+	sudo yum install jenkins
+
+Verify
+
+	sudo service jenkins start/stop/restart
+	sudo chkconfig jenkins on
+
+Firewall Disable
+
+	firewall-cmd --zone=public --add-port=8080/tcp --permanent
+	firewall-cmd --zone=public --add-service=http --permanent
+	firewall-cmd --reload
+	firewall-cmd --list-all
+
+Note on CentOS Java
+
+	If you get output similar to the following, it means you're using the default (GCJ) version of Java, which will not work with Jenkins:
+
+	java -version
+	java version "1.5.0"
+	gij (GNU libgcj) version 4.4.6 20110731 (Red Hat 4.4.6-3)
+
+	To correct this, you may need to remove the GCJ version of Java and install a Sun-compatible version.
+
+	If you received the above output, uninstall the default java:
+
+ 	yum remove java
+
+	yum install java-1.7.0-openjdk
+
+	java -version
+		java version "1.7.0_79"
+		OpenJDK Runtime Environment (rhel-2.5.5.1.el6_6-x86_64 u79-b14)
+		OpenJDK 64-Bit Server VM (build 24.79-b02, mixed mode)
+
+Git Plugin
+
+	Git Plugin This plugin allows use of Git http://gitscm.com/ as a build SCM. A recent Git runtime is required (1.7.9 minimum, 1.8.x recommended). Plugin is only tested on official git client http://gitscm.com/. Use exotic installations at your own risks. {}Configuration Repository URL should be in the format
+
+	If you are seeing output indicating Git could not clone, something like the output below, go to to the Jenkins configuration settings (not the project settings, the global ones) and change the Git path to a fully qualified path (eg. not "git" but "/usr/bin/git" or wherever your Git binary is installed). You should also verify that the permissions are correct if you are doing a file system based clone.
+
+	Started by user anonymous
+	Checkout:workspace / C:\Documents and Settings\Administrator\.hudson\jobs\watir\workspace - hudson.remoting.LocalChannel@1a1f370
+	Last Build : #4
+	Checkout:workspace / C:\Documents and Settings\Administrator\.hudson\jobs\watir\workspace - hudson.remoting.LocalChannel@1a1f370
+	Cloning the remote Git repository
+	Cloning repository origin
+	$ git clone -o origin git://github.com/bret/watir.git "C:\Documents and Settings\Administrator\.hudson\jobs\watir\workspace"
+	Trying next repository
+	ERROR: Could not clone from a repository
+	FATAL: Could not clone
+	hudson.plugins.git.GitException: Could not clone
+    		at hudson.plugins.git.GitSCM$2.invoke(GitSCM.java:400)
+		at hudson.plugins.git.GitSCM$2.invoke(GitSCM.java:358)
+    		at hudson.FilePath.act(FilePath.java:676)
+    		at hudson.FilePath.act(FilePath.java:660)
+    		at hudson.plugins.git.GitSCM.checkout(GitSCM.java:358)
+    		at hudson.model.AbstractProject.checkout(AbstractProject.java:833)
+    		at hudson.model.AbstractBuild$AbstractRunner.checkout(AbstractBuild.java:314)
+    		at hudson.model.AbstractBuild$AbstractRunner.run(AbstractBuild.java:266)
+    		at hudson.model.Run.run(Run.java:948)
+    		at hudson.model.Build.run(Build.java:112)
+    		at hudson.model.ResourceController.execute(ResourceController.java:93)
+    		at hudson.model.Executor.run(Executor.java:118)
+
+	You may need to tell git who the user Jenkins is running as. To do this on a Linux/Unix system switch to that user which is probably tomcat6. Do this by using either of the following, which work even if the user is not supposed to have shell access.
+	$ su - -s /bin/bash tomcat6
+	$ sudo su - -s /bin/bash tomcat6
+	Now cd to the directory where the clone Jenkins created is and use git config user.name and git config user.email to set the values.
+	$ cd /srv/jenkins/jobs/project/workspace
+	$ git config user.email "some@email.com"
+	$ git config user.name "jenkins"
+
+
+Git Server Plugin
+	This plugin is a library plugin for other plugins to add git server functionality to Jenkins. This plugin wraps the serverside functionality of JGit so that other plugins can easily expose Git repositories from Jenkins via its SSH transport and HTTP in a collaborative fashion. This plugin s a library plugin, in the sense that it doesn't have any user visible feature on its own.
+
+See Git userContent plugin as a nice and short example of how to take advantages of this feature.
+
+Developer Guide
+In terms of code, there are two classes that plugins like git-userContent-plugin should be interested in.
+
+One is HttpGitRepository, which represents Git repository access via HTTP. Typically you have some directory inside $JENKINS_HOME that houses the repository, then you subtype GitHttpRepository and override abstract methods to fill in the missing details. FileBackedHttpGitRepository is a convenient default implementation that simplifies this further. GitUserContentRepository in git-userContent-plugin is an example of using this class. This use also implements RootAction to bind this repository at http://server/jenkins/userContent.git, and I expect this combination to be fairly common.
+
+The other class of interest is RepositoryResolver. Git server plugin adds necessary Jenkins SSH CLI hook for exposing Git repositories over SSH. The only missing link here is that when the client runs "git clone ssh://server/foo/bar/zot.git", we need to figure out what repositories on the server corresponds to /foo/bar/zot.git, and that's what the RepositoryResolver extension point does. The sample implementation in git-userContent-plugin will be hopefully self-explanatory. In this case, GitUserContentRepository is a singleton (because it's RootAction), so we inject that and basically just delegate the calls to it.
+
+Artifactory
+
+Installing Artifactory
+
+https://www.jfrog.com/open-source/
+http://bit.ly/Hqv9aj
+
+
+To install Artifactory manually, simply unzip the Artifactory download file to a location on your file system. This will be your $ARTIFACTORY_HOME location.
+No further action is needed.
+To modify your JVM parameters modify the JAVA_OPTIONS in $ARTIFACTORY_HOME/bin/artifactory.default
+Running Artifactory
+You can run Artifactory manually to see its behavior by directly executing:
+$ARTIFACTORY_HOME/bin/artifactory.sh 
+The console is locked on the Artifactory process and you can stop it cleanly with Crtl+C.
+To directly run Artifactory as a daemon process, using the environment variables of the shell you are currently in, execute the following script:
+$ARTIFACTORY_HOME/bin/artifactoryctl start
+Startup time
+Depending on your system performance it may take Artifactory several seconds to start up. If you try to access Artifactory through your browser while it is starting up, within a few seconds it will provide a notification that it is in the startup process.
+Using the same script, you can check if Artifactory is running and display its process id, or stop it using:
+Checking if Artifactory is running or stopping it
+$ARTIFACTORY_HOME/bin/artifactoryctl check | stop
+ 
+To run the Artifactory UI see Accessing Artifactory.
+ Service Installation
+Artifactory is packaged as a zip file with a bundled Tomcat, and a complete install script that can be used to install it as a Linux service, running under a custom user.
+Permissions
+When running Artifactory as a service, the installation script creates a user called Artifactory which must have run and execute permissions on the installation directory.
+Therefore it is recommended to extract the Artifactory download file into a directory that gives run and execute permissions to all users such as /opt
+Installing Artifactory
+To install Artifactory as a service, browse to your $ARTIFACTORY_HOME/bin directory and execute the following command as root:
+Running the installation script as root
+$ARTIFACTORY_HOME/bin/installService.sh [USER [GROUP]]
+ 
+The following table describes the sequence of commands performed by the install script:
+User creation
+Creates a default user named artifactory ($ARTIFACTORY_USER). You can change the default user by editing the $ARTIFACTORY_USER value in /etc/opt/jfrog/artifactory/default.
+You can also optionally run the install script to start the Artifactory service under a different user by passing in the user name as the first parameter. If you include the user name, you may also optionally include a group.
+etc config
+Creates the folder /etc/opt/jfrog/artifactory, copies the configuration files there and creates a soft link in$ARTIFACTORY_HOME/etc
+etc default
+Creates the file /etc/opt/jfrog/artifactory/default containing the main environment variables needed for Artifactory to run:JAVA_HOME, ARTIFACTORY_USER, ARTIFACTORY_HOME, JAVA_OPTIONS,... 
+The /etc/opt/jfrog/artifactory/default is included at the top of artifactoryctl and can include any settings.
+To modify your JVM parameters modify JAVA_OPTIONS in /etc/opt/jfrog/artifactory/default
+init.d
+Copies the service script file artifactory to /etc/init.d/artifactory
+Logs folder
+Creates the folder $ARTIFACTORY_HOME/logs, makes it writable for the user ARTIFACTORY_USER and creates a soft link $ARTIFACTORY_HOME/logs.
+The $ARTIFACTORY_HOME/tomcat/logs folder is linked to $ARTIFACTORY_HOME/logs/catalina.
+Backup folder
+Creates the folder $ARTIFACTORY_HOME/backup, so you must create a link if you want this folder to point to a different place (such as /var/backup/artifactory for example). The script makes $ARTIFACTORY_HOME/backup writable for the user ARTIFACTORY_USER.
+Data folder
+Creates the folder $ARTIFACTORY_HOME/data, so you must create a link if you want this folder to point to somewhere else. The script makes it writable for the user ARTIFACTORY_USER.
+chkconfig calls
+The script calls add and list (you can see the output), and then activates the Artifactory service
+Running Artifactory
+To start or stop Artifactory as a service you must be running as root and can use the following command:
+service artifactory start | stop
+Checking the status of the Artifactory service
+Once Artifactory is correctly installed, you can check if it is running with:
+service artifactory check
+If Artifactory is running, you should see its pid.
+If Artifactory is not running you will see a list of environment variables used by the service.
+ 
+You can also check the Artifactory log with:
+tail -f $ARTIFACTORY_HOME/logs/artifactory.log
+
+Stash Pull Request Builder plugin for Jenkins = Awesome
+
+https://github.com/nemccarthy/stash-pullrequest-builder-plugin
+
+zip: https://github.com/nemccarthy/stash-pullrequest-builder-plugin/archive/master.zip
+
+https://github.com/nemccarthy/stash-pullrequest-builder-plugin.git
