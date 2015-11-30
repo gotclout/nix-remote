@@ -169,3 +169,6 @@ https://github.com/nemccarthy/stash-pullrequest-builder-plugin
 zip: https://github.com/nemccarthy/stash-pullrequest-builder-plugin/archive/master.zip
 
 https://github.com/nemccarthy/stash-pullrequest-builder-plugin.git
+
+
+*** GitLab V Stash ***
